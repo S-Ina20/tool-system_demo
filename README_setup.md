@@ -20,7 +20,7 @@ cd backend
 pip install fastapi uvicorn qrcode pillow python-multipart
 
 # サーバー起動
-uvicorn main:app --reload --port 8000
+py -m uvicorn main:app --reload --port 8000
 ```
 
 ### 2. フロントエンド起動
