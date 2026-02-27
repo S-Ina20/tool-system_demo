@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Three Lab - 管理画面</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c28;
+    --border: #2a2a3a;
+    --accent: #ff6b35;
+    --accent2: #00e5ff;
+    --text: #e8e8f0;
+    --text-dim: #6b6b8a;
+    --success: #00d68f;
+    --warning: #ffaa00;
+    --danger: #ff4757;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --font-body: 'Noto Sans JP', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,107,53,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,107,53,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app-shell {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+  }
+
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+
+  .logo-area {
+    padding: 24px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .logo-title {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .logo-title span { color: var(--accent); }
+
+  .admin-info {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .admin-name {
+    font-weight: 600;
+    color: var(--accent);
+    font-size: 13px;
+  }
+
+  .nav {
+    flex: 1;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+    border: 1px solid transparent;
+  }
+
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+
+  .nav-item.active {
+    background: rgba(255,107,53,0.08);
+    color: var(--accent);
+    border-color: rgba(255,107,53,0.2);
+  }
+
+  .nav-icon { font-size: 14px; width: 18px; text-align: center; }
+
+  .status-badge {
+    margin-left: auto;
+    background: var(--danger);
+    color: #fff;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    padding: 2px 6px;
+    border-radius: 100px;
+    font-weight: 600;
+  }
+
+  .main {
+    overflow-y: auto;
+    min-height: 100vh;
+  }
+
+  .page { display: none; padding: 32px; }
+  .page.active { display: block; }
+
+  .page-header { margin-bottom: 28px; }
+
+  .page-header h1 {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+
+  .page-header p { color: var(--text-dim); font-size: 13px; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+  }
+
+  .stat-card.danger::before { background: var(--danger); }
+  .stat-card.success::before { background: var(--success); }
+  .stat-card.cyan::before { background: var(--accent2); }
+
+  .stat-label {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .stat-value.accent { color: var(--accent); }
+  .stat-value.danger { color: var(--danger); }
+  .stat-value.success { color: var(--success); }
+  .stat-value.cyan { color: var(--accent2); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .card-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 12px 14px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(42,42,58,0.5);
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .tool-name { font-weight: 600; color: var(--text); }
+  .tool-id { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 500;
+  }
+
+  .pill-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+  .pill.pending { background: rgba(255,71,87,0.1); color: var(--danger); }
+  .pill.pending .pill-dot { background: var(--danger); }
+
+  .pill.quoted { background: rgba(0,229,255,0.1); color: var(--accent2); }
+  .pill.quoted .pill-dot { background: var(--accent2); }
+
+  .pill.completed { background: rgba(0,214,143,0.1); color: var(--success); }
+  .pill.completed .pill-dot { background: var(--success); }
+
+  .pill.high { background: rgba(255,71,87,0.1); color: var(--danger); }
+  .pill.high .pill-dot { background: var(--danger); }
+
+  .pill.normal { background: rgba(107,107,138,0.1); color: var(--text-dim); }
+  .pill.normal .pill-dot { background: var(--text-dim); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    font-family: var(--font-body);
+  }
+
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #ff8555; }
+
+  .btn-success { background: rgba(0,214,143,0.15); color: var(--success); border: 1px solid rgba(0,214,143,0.3); }
+  .btn-success:hover { background: rgba(0,214,143,0.25); }
+
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 20px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 8px 16px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    color: var(--text-dim);
+    transition: all 0.15s;
+  }
+
+  .tab.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    max-width: 520px;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .modal-title {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-close:hover { color: var(--text); border-color: var(--accent); }
+
+  .form-group { margin-bottom: 14px; }
+
+  .form-group label {
+    display: block;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: var(--font-body);
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  textarea { resize: vertical; min-height: 60px; }
+
+  .detail-box {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .detail-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .detail-item {
+    margin-bottom: 10px;
+  }
+
+  .detail-item .label {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 2px;
+  }
+
+  .detail-item .value {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .reason-box {
+    background: rgba(255,107,53,0.05);
+    border: 1px solid rgba(255,107,53,0.2);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+
+  .reason-box .label {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface);
+    border: 1px solid var(--success);
+    border-radius: 10px;
+    padding: 14px 20px;
+    font-size: 14px;
+    color: var(--success);
+    z-index: 999;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-dim);
+  }
+
+  .empty-state .icon { font-size: 36px; margin-bottom: 10px; }
+
+  @media (max-width: 900px) {
+    .app-shell { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .page { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="logo-area">
+      <div class="logo-badge">▸ Three Lab</div>
+      <div class="logo-title"><span>管理</span>画面</div>
+    </div>
+    <div class="admin-info">
+      <div class="admin-name">担当者ポータル</div>
+      <div>再研磨依頼管理</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active" onclick="showPage('dashboard')">
+        <span class="nav-icon">◉</span>
+        ダッシュボード
+      </div>
+      <div class="nav-item" onclick="showPage('requests')">
+        <span class="nav-icon">↺</span>
+        依頼管理
+        <span class="status-badge" id="pending-badge" style="display:none">0</span>
+      </div>
+      <div class="nav-item" onclick="showPage('tools')">
+        <span class="nav-icon">⚙</span>
+        工具一覧
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <h1>ダッシュボード</h1>
+        <p>依頼状況の概要</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card danger">
+          <div class="stat-label">未対応依頼</div>
+          <div class="stat-value danger" id="stat-pending">—</div>
+        </div>
+        <div class="stat-card cyan">
+          <div class="stat-label">見積済み</div>
+          <div class="stat-value cyan" id="stat-quoted">—</div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-label">今月完了</div>
+          <div class="stat-value success" id="stat-completed">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">管理工具数</div>
+          <div class="stat-value accent" id="stat-tools">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">未対応の依頼（要対応）</div>
+          <button class="btn btn-outline btn-sm" onclick="showPage('requests')">すべて見る</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>工具名</th>
+              <th>顧客</th>
+              <th>材質</th>
+              <th>依頼日</th>
+              <th>優先度</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="dashboard-pending"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">見積回答済み（顧客確認待ち）</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>工具名</th>
+              <th>材質</th>
+              <th>見積金額</th>
+              <th>納期</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="dashboard-quoted"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REQUESTS PAGE -->
+    <div class="page" id="page-requests">
+      <div class="page-header">
+        <h1>依頼管理</h1>
+        <p>再研磨依頼の管理・見積回答</p>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="filterRequests('all', this)">すべて</div>
+        <div class="tab" onclick="filterRequests('pending', this)">未対応</div>
+        <div class="tab" onclick="filterRequests('quoted', this)">見積済</div>
+        <div class="tab" onclick="filterRequests('completed', this)">完了</div>
+      </div>
+
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>工具名</th>
+              <th>材質</th>
+              <th>依頼者</th>
+              <th>依頼日</th>
+              <th>優先度</th>
+              <th>状態</th>
+              <th>見積</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="requests-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TOOLS PAGE -->
+    <div class="page" id="page-tools">
+      <div class="page-header">
+        <h1>工具一覧</h1>
+        <p>管理している全工具</p>
+      </div>
+
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>工具名</th>
+              <th>種類</th>
+              <th>材質</th>
+              <th>メーカー</th>
+              <th>再研磨回数</th>
+              <th>状態</th>
+            </tr>
+          </thead>
+          <tbody id="tools-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- QUOTE MODAL -->
+<div class="modal-overlay" id="quote-modal">
+  <div class="modal">
+    <div class="modal-title">見積回答</div>
+    <button class="modal-close" onclick="closeModal('quote-modal')">✕</button>
+
+    <div id="quote-tool-info"></div>
+
+    <div class="reason-box" id="quote-reason-box">
+      <div class="label">依頼理由</div>
+      <div id="quote-reason"></div>
+    </div>
+
+    <input type="hidden" id="quote-req-id">
+
+    <div class="form-group">
+      <label>見積金額（税抜）*</label>
+      <input type="number" id="quote-price" placeholder="例: 8500">
+    </div>
+    <div class="form-group">
+      <label>納期 *</label>
+      <input type="date" id="quote-delivery">
+    </div>
+    <div class="form-group">
+      <label>備考</label>
+      <textarea id="quote-notes" placeholder="顧客へのメッセージ（任意）"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:20px;">
+      <button class="btn btn-primary" onclick="submitQuote()">見積を送信</button>
+      <button class="btn btn-outline" onclick="closeModal('quote-modal')">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-title" id="detail-title">依頼詳細</div>
+    <button class="modal-close" onclick="closeModal('detail-modal')">✕</button>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://localhost:8000/api';
+let allRequests = [];
+let currentFilter = 'all';
+
+const statusMap = {
+  pending: '未対応',
+  quoted: '見積済',
+  completed: '完了'
+};
+
+const priorityMap = { normal: '通常', high: '急ぎ' };
+
+function pillHtml(cls, text) {
+  return `<span class="pill ${cls}"><span class="pill-dot"></span>${text}</span>`;
+}
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.includes({dashboard:'ダッシュボード', requests:'依頼管理', tools:'工具一覧'}[id])) {
+      n.classList.add('active');
+    }
+  });
+  if (id === 'dashboard') loadDashboard();
+  if (id === 'requests') loadRequests();
+  if (id === 'tools') loadTools();
+}
+
+function showToast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = isError ? 'var(--danger)' : 'var(--success)';
+  t.style.color = isError ? 'var(--danger)' : 'var(--success)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+async function loadStats() {
+  try {
+    const d = await fetch(`${API}/admin/stats`).then(r => r.json());
+    document.getElementById('stat-pending').textContent = d.pending_requests;
+    document.getElementById('stat-quoted').textContent = d.quoted_requests;
+    document.getElementById('stat-completed').textContent = d.completed_this_month;
+    document.getElementById('stat-tools').textContent = d.total_tools_managed;
+
+    const badge = document.getElementById('pending-badge');
+    if (d.pending_requests > 0) {
+      badge.style.display = '';
+      badge.textContent = d.pending_requests;
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function loadDashboard() {
+  await loadStats();
+
+  // 未対応依頼
+  try {
+    const reqs = await fetch(`${API}/sharpening-requests?status=pending`).then(r => r.json());
+    const tbody = document.getElementById('dashboard-pending');
+    if (reqs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="icon">✓</div>未対応の依頼はありません</div></td></tr>';
+    } else {
+      tbody.innerHTML = reqs.slice(0,5).map(r => `
+        <tr>
+          <td><div class="tool-name">${r.tool_name}</div><div class="tool-id">${r.tool_type}</div></td>
+          <td>${r.requested_by}</td>
+          <td>${r.material || '—'}</td>
+          <td style="font-family:var(--font-mono);font-size:12px">${r.requested_at?.slice(0,10) || '—'}</td>
+          <td>${pillHtml(r.priority, priorityMap[r.priority])}</td>
+          <td><button class="btn btn-primary btn-sm" onclick="openQuoteModal('${r.id}')">見積回答</button></td>
+        </tr>
+      `).join('');
+    }
+  } catch(e) { console.error(e); }
+
+  // 見積済み
+  try {
+    const reqs = await fetch(`${API}/sharpening-requests?status=quoted`).then(r => r.json());
+    const tbody = document.getElementById('dashboard-quoted');
+    if (reqs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state">見積済みの依頼はありません</div></td></tr>';
+    } else {
+      tbody.innerHTML = reqs.slice(0,5).map(r => `
+        <tr>
+          <td><div class="tool-name">${r.tool_name}</div><div class="tool-id">${r.tool_type}</div></td>
+          <td>${r.material || '—'}</td>
+          <td style="font-family:var(--font-mono);font-weight:600">¥${r.estimated_price?.toLocaleString() || '—'}</td>
+          <td style="font-family:var(--font-mono)">${r.estimated_delivery || '—'}</td>
+          <td><button class="btn btn-success btn-sm" onclick="completeRequest('${r.id}')">完了</button></td>
+        </tr>
+      `).join('');
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function loadRequests() {
+  try {
+    allRequests = await fetch(`${API}/sharpening-requests`).then(r => r.json());
+    renderRequests();
+  } catch(e) { console.error(e); }
+}
+
+function renderRequests() {
+  const filtered = currentFilter === 'all' ? allRequests : allRequests.filter(r => r.status === currentFilter);
+  const tbody = document.getElementById('requests-tbody');
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="icon">↺</div>依頼はありません</div></td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(r => `
+    <tr>
+      <td><div class="tool-name">${r.tool_name}</div><div class="tool-id">${r.tool_id}</div></td>
+      <td>${r.material || '—'}</td>
+      <td>${r.requested_by}</td>
+      <td style="font-family:var(--font-mono);font-size:12px">${r.requested_at?.slice(0,10) || '—'}</td>
+      <td>${pillHtml(r.priority, priorityMap[r.priority])}</td>
+      <td>${pillHtml(r.status, statusMap[r.status])}</td>
+      <td style="font-family:var(--font-mono)">${r.estimated_price ? '¥'+r.estimated_price.toLocaleString() : '—'}</td>
+      <td>
+        ${r.status === 'pending' ? `<button class="btn btn-primary btn-sm" onclick="openQuoteModal('${r.id}')">見積</button>` : ''}
+        ${r.status === 'quoted' ? `<button class="btn btn-success btn-sm" onclick="completeRequest('${r.id}')">完了</button>` : ''}
+        ${r.status === 'completed' ? '—' : ''}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filterRequests(status, tab) {
+  currentFilter = status;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  renderRequests();
+}
+
+async function loadTools() {
+  try {
+    const tools = await fetch(`${API}/tools`).then(r => r.json());
+    const tbody = document.getElementById('tools-tbody');
+    tbody.innerHTML = tools.map(t => {
+      const pct = (t.resharpening_count / t.max_resharpening) * 100;
+      return `
+        <tr>
+          <td><div class="tool-name">${t.name}</div><div class="tool-id">${t.id}</div></td>
+          <td>${t.tool_type}</td>
+          <td>${t.material || '—'}</td>
+          <td>${t.manufacturer || '—'}</td>
+          <td style="font-family:var(--font-mono)">${t.resharpening_count} / ${t.max_resharpening}</td>
+          <td>${pillHtml(t.status === 'active' ? 'completed' : 'pending', t.status === 'active' ? '稼働中' : '研磨待ち')}</td>
+        </tr>
+      `;
+    }).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function openQuoteModal(reqId) {
+  try {
+    const r = await fetch(`${API}/sharpening-requests/${reqId}`).then(r => r.json());
+
+    document.getElementById('quote-req-id').value = reqId;
+    document.getElementById('quote-tool-info').innerHTML = `
+      <div class="detail-box">
+        <div style="font-size:15px;font-weight:700;margin-bottom:8px">${r.tool_name}</div>
+        <div class="detail-row">
+          <div class="detail-item">
+            <div class="label">種類</div>
+            <div class="value">${r.tool_type}</div>
+          </div>
+          <div class="detail-item">
+            <div class="label">材質</div>
+            <div class="value">${r.material || '—'}</div>
+          </div>
+          <div class="detail-item">
+            <div class="label">メーカー</div>
+            <div class="value">${r.manufacturer || '—'}</div>
+          </div>
+          <div class="detail-item">
+            <div class="label">再研磨回数</div>
+            <div class="value">${r.resharpening_count} / ${r.max_resharpening}</div>
+          </div>
+        </div>
+        <div class="detail-item" style="margin-bottom:0">
+          <div class="label">依頼者</div>
+          <div class="value">${r.requested_by}</div>
+        </div>
+      </div>
+    `;
+    document.getElementById('quote-reason').textContent = r.reason;
+    document.getElementById('quote-price').value = '';
+    document.getElementById('quote-delivery').value = '';
+    document.getElementById('quote-notes').value = '';
+
+    openModal('quote-modal');
+  } catch(e) {
+    showToast('依頼情報の取得に失敗しました', true);
+  }
+}
+
+async function submitQuote() {
+  const reqId = document.getElementById('quote-req-id').value;
+  const price = parseInt(document.getElementById('quote-price').value);
+  const delivery = document.getElementById('quote-delivery').value;
+  const notes = document.getElementById('quote-notes').value.trim();
+
+  if (!price || !delivery) {
+    showToast('見積金額と納期を入力してください', true);
+    return;
+  }
+
+  try {
+    const r = await fetch(`${API}/sharpening-requests/${reqId}/quote`, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        estimated_price: price,
+        estimated_delivery: delivery,
+        quote_notes: notes || null
+      })
+    });
+    if (!r.ok) throw new Error('送信エラー');
+
+    closeModal('quote-modal');
+    showToast('見積を送信しました');
+    loadDashboard();
+    loadRequests();
+  } catch(e) {
+    showToast('送信に失敗しました', true);
+  }
+}
+
+async function completeRequest(reqId) {
+  if (!confirm('この依頼を完了としてマークしますか？\n工具の再研磨回数がカウントされます。')) return;
+
+  try {
+    const r = await fetch(`${API}/sharpening-requests/${reqId}/complete`, { method: 'PATCH' });
+    if (!r.ok) throw new Error('エラー');
+
+    showToast('完了としてマークしました');
+    loadDashboard();
+    loadRequests();
+  } catch(e) {
+    showToast('処理に失敗しました', true);
+  }
+}
+
+// Init
+loadDashboard();
+</script>
+</body>
+</html>

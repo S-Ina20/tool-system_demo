@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Three Lab - 再研磨依頼ポータル</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c28;
+    --border: #2a2a3a;
+    --accent: #00e5ff;
+    --accent2: #ff6b35;
+    --text: #e8e8f0;
+    --text-dim: #6b6b8a;
+    --success: #00d68f;
+    --warning: #ffaa00;
+    --danger: #ff4757;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --font-body: 'Noto Sans JP', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app-shell {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+  }
+
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+
+  .logo-area {
+    padding: 24px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .logo-title {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .logo-title span { color: var(--accent); }
+
+  .customer-info {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .customer-name {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  .nav {
+    flex: 1;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+    border: 1px solid transparent;
+  }
+
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+
+  .nav-item.active {
+    background: rgba(0,229,255,0.08);
+    color: var(--accent);
+    border-color: rgba(0,229,255,0.2);
+  }
+
+  .nav-icon { font-size: 14px; width: 18px; text-align: center; }
+
+  .status-badge {
+    margin-left: auto;
+    background: var(--warning);
+    color: #000;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    padding: 2px 6px;
+    border-radius: 100px;
+    font-weight: 600;
+  }
+
+  .main {
+    overflow-y: auto;
+    min-height: 100vh;
+  }
+
+  .page { display: none; padding: 32px; }
+  .page.active { display: block; }
+
+  .page-header { margin-bottom: 28px; }
+
+  .page-header h1 {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+
+  .page-header p { color: var(--text-dim); font-size: 13px; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+  }
+
+  .stat-card.warn::before { background: var(--warning); }
+  .stat-card.success::before { background: var(--success); }
+
+  .stat-label {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .stat-value.cyan { color: var(--accent); }
+  .stat-value.warn { color: var(--warning); }
+  .stat-value.success { color: var(--success); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .card-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 12px 14px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(42,42,58,0.5);
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .tool-name { font-weight: 600; color: var(--text); }
+  .tool-id { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 500;
+  }
+
+  .pill-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+  .pill.active { background: rgba(0,214,143,0.1); color: var(--success); }
+  .pill.active .pill-dot { background: var(--success); }
+
+  .pill.sharpening_needed { background: rgba(255,170,0,0.1); color: var(--warning); }
+  .pill.sharpening_needed .pill-dot { background: var(--warning); }
+
+  .pill.pending { background: rgba(255,170,0,0.1); color: var(--warning); }
+  .pill.pending .pill-dot { background: var(--warning); }
+
+  .pill.quoted { background: rgba(0,229,255,0.1); color: var(--accent); }
+  .pill.quoted .pill-dot { background: var(--accent); }
+
+  .pill.completed { background: rgba(0,214,143,0.1); color: var(--success); }
+  .pill.completed .pill-dot { background: var(--success); }
+
+  .pill.high { background: rgba(255,71,87,0.1); color: var(--danger); }
+  .pill.high .pill-dot { background: var(--danger); }
+
+  .pill.normal { background: rgba(107,107,138,0.1); color: var(--text-dim); }
+  .pill.normal .pill-dot { background: var(--text-dim); }
+
+  .resharp-info {
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .resharp-bar {
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 100px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+
+  .resharp-fill {
+    height: 100%;
+    border-radius: 100px;
+    background: var(--accent);
+  }
+
+  .resharp-fill.warn { background: var(--warning); }
+  .resharp-fill.danger { background: var(--danger); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    font-family: var(--font-body);
+  }
+
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #33ecff; }
+
+  .btn-success { background: var(--success); color: #000; }
+  .btn-success:hover { background: #33e8b0; }
+
+  .btn-warning { background: var(--warning); color: #000; }
+  .btn-warning:hover { background: #ffbb33; }
+
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-lg { padding: 12px 24px; font-size: 15px; }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .modal-title {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-close:hover { color: var(--text); border-color: var(--accent); }
+
+  .form-group { margin-bottom: 14px; }
+
+  .form-group label {
+    display: block;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: var(--font-body);
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  textarea { resize: vertical; min-height: 80px; }
+
+  .quote-box {
+    background: rgba(0,229,255,0.05);
+    border: 1px solid rgba(0,229,255,0.2);
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 16px;
+  }
+
+  .quote-box h4 {
+    font-family: var(--font-display);
+    font-size: 13px;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .quote-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 13px;
+  }
+
+  .quote-row .label { color: var(--text-dim); }
+  .quote-row .value { font-weight: 600; }
+  .quote-row .price { color: var(--accent); font-family: var(--font-mono); font-size: 18px; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface);
+    border: 1px solid var(--success);
+    border-radius: 10px;
+    padding: 14px 20px;
+    font-size: 14px;
+    color: var(--success);
+    z-index: 999;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-dim);
+  }
+
+  .empty-state .icon { font-size: 36px; margin-bottom: 10px; }
+
+  /* QR Scanner Styles */
+  .scanner-layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .scanner-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .scanner-box {
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    aspect-ratio: 1;
+  }
+
+  #qr-reader {
+    width: 100% !important;
+  }
+
+  #qr-reader video {
+    border-radius: 8px;
+  }
+
+  #qr-reader__scan_region {
+    min-height: 280px !important;
+  }
+
+  #qr-reader__dashboard {
+    display: none !important;
+  }
+
+  .scanner-status {
+    text-align: center;
+    padding: 12px;
+    font-size: 12px;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    margin-top: 12px;
+  }
+
+  .scanner-status.scanning {
+    color: var(--success);
+  }
+
+  .scanner-status .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    margin-right: 8px;
+    animation: pulse 1.5s infinite;
+  }
+
+  .scanner-status.scanning .dot {
+    background: var(--success);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .tool-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    min-height: 400px;
+  }
+
+  .tool-panel-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 400px;
+    color: var(--text-dim);
+    text-align: center;
+    padding: 40px;
+  }
+
+  .tool-panel-empty .icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  .tool-panel-content {
+    padding: 24px;
+  }
+
+  .tool-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tool-header-info h2 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+
+  .tool-header-info .id {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .tool-details {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .detail-item .label {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .detail-item .value {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .usage-section {
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+  }
+
+  .usage-section h3 {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .usage-list {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .usage-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--surface2);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+
+  .usage-item .user {
+    font-weight: 500;
+  }
+
+  .usage-item .time {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .usage-item .note {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  .manual-input {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .manual-input-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .manual-input input {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  @media (max-width: 900px) {
+    .app-shell { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .page { padding: 16px; }
+    .scanner-layout { grid-template-columns: 1fr; }
+    .tool-details { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="logo-area">
+      <div class="logo-badge">▸ Three Lab</div>
+      <div class="logo-title">再研磨<span>依頼</span>ポータル</div>
+    </div>
+    <div class="customer-info">
+      <div class="customer-name">デモ顧客株式会社</div>
+      <div>顧客ポータル</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item" onclick="showPage('scanner')">
+        <span class="nav-icon">▣</span>
+        QRスキャン
+      </div>
+      <div class="nav-item active" onclick="showPage('dashboard')">
+        <span class="nav-icon">◉</span>
+        ダッシュボード
+      </div>
+      <div class="nav-item" onclick="showPage('tools')">
+        <span class="nav-icon">⚙</span>
+        工具一覧
+      </div>
+      <div class="nav-item" onclick="showPage('usage')">
+        <span class="nav-icon">📋</span>
+        使用履歴
+      </div>
+      <div class="nav-item" onclick="showPage('requests')">
+        <span class="nav-icon">↺</span>
+        依頼状況
+        <span class="status-badge" id="quoted-badge" style="display:none">0</span>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <!-- QR SCANNER PAGE -->
+    <div class="page" id="page-scanner">
+      <div class="page-header">
+        <h1>QRスキャン</h1>
+        <p>工具のQRコードを読み取って使用記録・再研磨依頼</p>
+      </div>
+
+      <div class="scanner-layout">
+        <div>
+          <div class="scanner-container">
+            <div class="scanner-box">
+              <div id="qr-reader"></div>
+            </div>
+            <div class="scanner-status" id="scanner-status">
+              <span class="dot"></span>
+              カメラを起動中...
+            </div>
+            <div class="manual-input">
+              <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px">または工具IDを直接入力</div>
+              <div class="manual-input-row">
+                <input type="text" id="manual-tool-id" placeholder="例: tool-001">
+                <button class="btn btn-outline btn-sm" onclick="lookupManualId()">検索</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tool-panel" id="tool-panel">
+          <div class="tool-panel-empty" id="tool-panel-empty">
+            <div class="icon">📷</div>
+            <div style="font-size:15px;font-weight:600;margin-bottom:8px">QRコードをスキャン</div>
+            <div style="font-size:13px">工具に貼られたQRコードを<br>カメラにかざしてください</div>
+          </div>
+          <div class="tool-panel-content" id="tool-panel-content" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <h1>ダッシュボード</h1>
+        <p>工具の再研磨依頼状況</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">登録工具数</div>
+          <div class="stat-value cyan" id="stat-total">—</div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-label">稼働中</div>
+          <div class="stat-value success" id="stat-active">—</div>
+        </div>
+        <div class="stat-card warn">
+          <div class="stat-label">研磨待ち</div>
+          <div class="stat-value warn" id="stat-sharpen">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">見積回答済</div>
+          <div class="stat-value cyan" id="stat-quoted">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">最近の依頼状況</div>
+          <button class="btn btn-outline btn-sm" onclick="showPage('requests')">すべて見る</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>工具名</th>
+              <th>材質</th>
+              <th>状態</th>
+              <th>見積</th>
+              <th>納期</th>
+            </tr>
+          </thead>
+          <tbody id="dashboard-requests"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">研磨が必要な工具</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>工具名</th>
+              <th>材質</th>
+              <th>使用回数</th>
+              <th>再研磨</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="dashboard-needs-sharpening"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TOOLS PAGE -->
+    <div class="page" id="page-tools">
+      <div class="page-header">
+        <h1>工具一覧</h1>
+        <p>登録されている工具の一覧</p>
+      </div>
+
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>工具名</th>
+              <th>種類</th>
+              <th>材質</th>
+              <th>メーカー</th>
+              <th>使用回数</th>
+              <th>再研磨回数</th>
+              <th>状態</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tools-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- USAGE PAGE -->
+    <div class="page" id="page-usage">
+      <div class="page-header">
+        <h1>使用履歴</h1>
+        <p>工具を選択して使用記録を確認</p>
+      </div>
+
+      <div class="card">
+        <div style="padding: 16px; border-bottom: 1px solid var(--border);">
+          <select id="usage-tool-select" onchange="loadToolUsageHistory()" style="max-width: 400px;">
+            <option value="">-- 工具を選択してください --</option>
+          </select>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>日時</th>
+              <th>使用者</th>
+              <th>備考</th>
+            </tr>
+          </thead>
+          <tbody id="usage-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REQUESTS PAGE -->
+    <div class="page" id="page-requests">
+      <div class="page-header">
+        <h1>依頼状況</h1>
+        <p>再研磨依頼の進捗確認</p>
+      </div>
+
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>工具名</th>
+              <th>材質</th>
+              <th>依頼日</th>
+              <th>状態</th>
+              <th>見積金額</th>
+              <th>納期</th>
+              <th>備考</th>
+            </tr>
+          </thead>
+          <tbody id="requests-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- REQUEST MODAL -->
+<div class="modal-overlay" id="request-modal">
+  <div class="modal">
+    <div class="modal-title">再研磨依頼</div>
+    <button class="modal-close" onclick="closeModal('request-modal')">✕</button>
+    <input type="hidden" id="req-tool-id">
+    <div class="form-group">
+      <label>工具名</label>
+      <input type="text" id="req-tool-name" readonly style="background:var(--bg)">
+    </div>
+    <div class="form-group">
+      <label>ご担当者名 *</label>
+      <input type="text" id="req-requester" placeholder="例: 田中 太郎">
+    </div>
+    <div class="form-group">
+      <label>依頼理由 *</label>
+      <textarea id="req-reason" placeholder="例: 刃先の摩耗により切削精度が低下しています"></textarea>
+    </div>
+    <div class="form-group">
+      <label>優先度</label>
+      <select id="req-priority">
+        <option value="normal">通常</option>
+        <option value="high">急ぎ</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:20px;">
+      <button class="btn btn-primary" onclick="submitRequest()">依頼を送信</button>
+      <button class="btn btn-outline" onclick="closeModal('request-modal')">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- USAGE MODAL -->
+<div class="modal-overlay" id="usage-modal">
+  <div class="modal">
+    <div class="modal-title">使用記録</div>
+    <button class="modal-close" onclick="closeModal('usage-modal')">✕</button>
+    <input type="hidden" id="usage-tool-id">
+    <div class="form-group">
+      <label>工具名</label>
+      <input type="text" id="usage-tool-name" readonly style="background:var(--bg)">
+    </div>
+    <div class="form-group">
+      <label>使用者名 *</label>
+      <input type="text" id="usage-user" placeholder="例: 山田 一郎">
+    </div>
+    <div class="form-group">
+      <label>使用日時</label>
+      <input type="datetime-local" id="usage-used-at">
+    </div>
+    <div class="form-group">
+      <label>備考（任意）</label>
+      <input type="text" id="usage-notes" placeholder="例: NC旋盤1号機">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:20px;">
+      <button class="btn btn-success" onclick="submitUsage()">使用を記録</button>
+      <button class="btn btn-outline" onclick="closeModal('usage-modal')">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- QR MODAL -->
+<div class="modal-overlay" id="qr-modal">
+  <div class="modal" style="max-width: 350px; text-align: center;">
+    <div class="modal-title">QRコード</div>
+    <button class="modal-close" onclick="closeModal('qr-modal')">✕</button>
+    <div id="qr-tool-name" style="font-size: 16px; font-weight: 700; margin-bottom: 16px;"></div>
+    <div id="qr-image-container" style="background: white; padding: 16px; border-radius: 8px; display: inline-block;"></div>
+    <div style="margin-top: 24px;">
+      <button class="btn btn-outline" onclick="closeModal('qr-modal')">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-title" id="detail-title">依頼詳細</div>
+    <button class="modal-close" onclick="closeModal('detail-modal')">✕</button>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://localhost:8000/api';
+let html5QrScanner = null;
+let currentToolId = null;
+let scannerActive = false;
+
+const statusMap = {
+  active: '稼働中',
+  sharpening_needed: '研磨待ち',
+  pending: '見積待ち',
+  quoted: '見積済',
+  completed: '完了'
+};
+
+const priorityMap = { normal: '通常', high: '急ぎ' };
+
+function pillHtml(cls, text) {
+  return `<span class="pill ${cls}"><span class="pill-dot"></span>${text}</span>`;
+}
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.includes({dashboard:'ダッシュボード', tools:'工具一覧', usage:'使用履歴', requests:'依頼状況', scanner:'QRスキャン'}[id])) {
+      n.classList.add('active');
+    }
+  });
+
+  // Start/stop scanner based on page
+  if (id === 'scanner') {
+    startScanner();
+  } else {
+    stopScanner();
+  }
+
+  if (id === 'dashboard') loadDashboard();
+  if (id === 'tools') loadTools();
+  if (id === 'usage') loadUsage();
+  if (id === 'requests') loadRequests();
+}
+
+function showToast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = isError ? 'var(--danger)' : 'var(--success)';
+  t.style.color = isError ? 'var(--danger)' : 'var(--success)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// === QR Scanner ===
+async function startScanner() {
+  if (scannerActive) return;
+
+  const statusEl = document.getElementById('scanner-status');
+  statusEl.innerHTML = '<span class="dot"></span>カメラを起動中...';
+  statusEl.className = 'scanner-status';
+
+  html5QrScanner = new Html5Qrcode("qr-reader");
+
+  try {
+    await html5QrScanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 220, height: 220 } },
+      onScanSuccess,
+      () => {}
+    );
+    scannerActive = true;
+    statusEl.innerHTML = '<span class="dot"></span>スキャン中... QRコードをかざしてください';
+    statusEl.className = 'scanner-status scanning';
+  } catch (err) {
+    console.error("Camera error:", err);
+    statusEl.innerHTML = '<span class="dot"></span>カメラにアクセスできません';
+    statusEl.className = 'scanner-status';
+  }
+}
+
+function stopScanner() {
+  if (html5QrScanner && scannerActive) {
+    html5QrScanner.stop().catch(() => {});
+    scannerActive = false;
+  }
+}
+
+function onScanSuccess(decodedText) {
+  // Parse tool ID from QR code (format: "TOOL:tool-001")
+  let toolId = decodedText;
+  if (decodedText.startsWith('TOOL:')) {
+    toolId = decodedText.replace('TOOL:', '');
+  }
+
+  // Avoid scanning same code repeatedly
+  if (toolId === currentToolId) return;
+
+  currentToolId = toolId;
+  loadToolPanel(toolId);
+
+  // Brief feedback
+  showToast('QRコードを読み取りました');
+}
+
+function lookupManualId() {
+  const id = document.getElementById('manual-tool-id').value.trim();
+  if (!id) return;
+  currentToolId = id;
+  loadToolPanel(id);
+}
+
+async function loadToolPanel(toolId) {
+  const emptyEl = document.getElementById('tool-panel-empty');
+  const contentEl = document.getElementById('tool-panel-content');
+
+  try {
+    const tool = await fetch(`${API}/tools/${toolId}`).then(r => {
+      if (!r.ok) throw new Error('Not found');
+      return r.json();
+    });
+
+    emptyEl.style.display = 'none';
+    contentEl.style.display = 'block';
+
+    const pct = (tool.resharpening_count / tool.max_resharpening) * 100;
+    const barCls = pct >= 100 ? 'danger' : pct >= 66 ? 'warn' : '';
+    const canRequest = tool.status !== 'sharpening_needed' && tool.resharpening_count < tool.max_resharpening;
+
+    contentEl.innerHTML = `
+      <div class="tool-header">
+        <div class="tool-header-info">
+          <h2>${tool.name}</h2>
+          <div class="id">${tool.id}</div>
+        </div>
+        ${pillHtml(tool.status, statusMap[tool.status] || tool.status)}
+      </div>
+
+      <div class="tool-details">
+        <div class="detail-item">
+          <div class="label">種類</div>
+          <div class="value">${tool.tool_type}</div>
+        </div>
+        <div class="detail-item">
+          <div class="label">材質</div>
+          <div class="value">${tool.material || '—'}</div>
+        </div>
+        <div class="detail-item">
+          <div class="label">メーカー</div>
+          <div class="value">${tool.manufacturer || '—'}</div>
+        </div>
+        <div class="detail-item">
+          <div class="label">使用回数</div>
+          <div class="value" style="font-family:var(--font-mono);font-size:18px;color:var(--accent)">${tool.usage_count}回</div>
+        </div>
+        <div class="detail-item">
+          <div class="label">再研磨回数</div>
+          <div class="value">
+            <span style="font-family:var(--font-mono)">${tool.resharpening_count} / ${tool.max_resharpening}</span>
+            <div class="resharp-bar" style="margin-top:4px"><div class="resharp-fill ${barCls}" style="width:${Math.min(100,pct)}%"></div></div>
+          </div>
+        </div>
+        <div class="detail-item">
+          <div class="label">保管場所</div>
+          <div class="value">${tool.location || '—'}</div>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="btn btn-success btn-lg" onclick="openUsageModal('${tool.id}','${tool.name}')">
+          ✓ 使用を記録
+        </button>
+        ${canRequest ? `
+        <button class="btn btn-warning btn-lg" onclick="openRequestModal('${tool.id}','${tool.name}')">
+          ↺ 再研磨依頼
+        </button>
+        ` : ''}
+      </div>
+
+      <div class="usage-section">
+        <h3>📋 使用履歴</h3>
+        <div class="usage-list" id="usage-list-${tool.id}">
+          ${tool.usage_history && tool.usage_history.length > 0 ? tool.usage_history.map(u => `
+            <div class="usage-item">
+              <div>
+                <div class="user">${u.used_by}</div>
+                ${u.notes ? `<div class="note">${u.notes}</div>` : ''}
+              </div>
+              <div class="time">${formatDateTime(u.used_at)}</div>
+            </div>
+          `).join('') : '<div style="padding:20px;text-align:center;color:var(--text-dim)">使用履歴はありません</div>'}
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    emptyEl.style.display = 'flex';
+    contentEl.style.display = 'none';
+    showToast('工具が見つかりません: ' + toolId, true);
+    currentToolId = null;
+  }
+}
+
+function formatDateTime(dt) {
+  if (!dt) return '—';
+  const d = new Date(dt);
+  return d.toLocaleDateString('ja-JP') + ' ' + d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+}
+
+// === Usage Recording ===
+function openUsageModal(toolId, toolName) {
+  document.getElementById('usage-tool-id').value = toolId;
+  document.getElementById('usage-tool-name').value = toolName;
+  document.getElementById('usage-user').value = '';
+  document.getElementById('usage-notes').value = '';
+  
+  // Set current datetime for usage-used-at
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // Adjust for timezone
+  document.getElementById('usage-used-at').value = now.toISOString().slice(0,16);
+  
+  openModal('usage-modal');
+}
+
+async function submitUsage() {
+  const toolId = document.getElementById('usage-tool-id').value;
+  const user = document.getElementById('usage-user').value.trim();
+  const usedAt = document.getElementById('usage-used-at').value;
+  const notes = document.getElementById('usage-notes').value.trim();
+
+  if (!user) {
+    showToast('使用者名を入力してください', true);
+    return;
+  }
+  if (!usedAt) {
+    showToast('使用日時を入力してください', true);
+    return;
+  }
+
+  try {
+    const r = await fetch(`${API}/tools/${toolId}/usage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ used_by: user, notes: notes || null, used_at: usedAt + ':00' }) // Backend expects seconds
+    });
+    if (!r.ok) throw new Error('エラー');
+
+    const result = await r.json();
+    closeModal('usage-modal');
+    showToast(`使用を記録しました（${result.new_usage_count}回目）`);
+
+    // Reload tool panel and usage history if on correct page
+    if (currentToolId === toolId) {
+      loadToolPanel(toolId);
+    }
+    // If on usage history page and selected tool matches, reload
+    const usageToolSelect = document.getElementById('usage-tool-select');
+    if (document.getElementById('page-usage').classList.contains('active') && usageToolSelect.value === toolId) {
+        loadToolUsageHistory();
+    }
+
+  } catch (e) {
+    showToast('記録に失敗しました', true);
+  }
+}
+
+// === Stats ===
+async function loadStats() {
+  try {
+    const d = await fetch(`${API}/stats`).then(r => r.json());
+    document.getElementById('stat-total').textContent = d.total_tools;
+    document.getElementById('stat-active').textContent = d.active_tools;
+    document.getElementById('stat-sharpen').textContent = d.needs_sharpening;
+    document.getElementById('stat-quoted').textContent = d.quoted_requests;
+
+    const badge = document.getElementById('quoted-badge');
+    if (d.quoted_requests > 0) {
+      badge.style.display = '';
+      badge.textContent = d.quoted_requests;
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function loadDashboard() {
+  await loadStats();
+
+  // 最近の依頼
+  try {
+    const reqs = await fetch(`${API}/sharpening-requests`).then(r => r.json());
+    const tbody = document.getElementById('dashboard-requests');
+    if (reqs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state">依頼はありません</div></td></tr>';
+    } else {
+      tbody.innerHTML = reqs.slice(0,5).map(r => `
+        <tr onclick="showRequestDetail('${r.id}')" style="cursor:pointer">
+          <td><div class="tool-name">${r.tool_name}</div><div class="tool-id">${r.tool_type}</div></td>
+          <td>${r.material || '—'}</td>
+          <td>${pillHtml(r.status, statusMap[r.status] || r.status)}</td>
+          <td style="font-family:var(--font-mono)">${r.estimated_price ? '¥'+r.estimated_price.toLocaleString() : '—'}</td>
+          <td style="font-family:var(--font-mono)">${r.estimated_delivery || '—'}</td>
+        </tr>
+      `).join('');
+    }
+  } catch(e) { console.error(e); }
+
+  // 研磨が必要な工具
+  try {
+    const tools = await fetch(`${API}/tools?status=sharpening_needed`).then(r => r.json());
+    const tbody = document.getElementById('dashboard-needs-sharpening');
+    if (tools.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="icon">✓</div>研磨が必要な工具はありません</div></td></tr>';
+    } else {
+      tbody.innerHTML = tools.map(t => {
+        const pct = (t.resharpening_count / t.max_resharpening) * 100;
+        const cls = pct >= 100 ? 'danger' : pct >= 66 ? 'warn' : '';
+        return `
+          <tr>
+            <td><div class="tool-name">${t.name}</div><div class="tool-id">${t.id}</div></td>
+            <td>${t.material || '—'}</td>
+            <td style="font-family:var(--font-mono)">${t.usage_count}回</td>
+            <td>
+              <div class="resharp-info">${t.resharpening_count} / ${t.max_resharpening}</div>
+              <div class="resharp-bar"><div class="resharp-fill ${cls}" style="width:${Math.min(100,pct)}%"></div></div>
+            </td>
+            <td><button class="btn btn-primary btn-sm" onclick="openRequestModal('${t.id}','${t.name}')">依頼</button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function loadTools() {
+  try {
+    const tools = await fetch(`${API}/tools`).then(r => r.json());
+    const tbody = document.getElementById('tools-tbody');
+    tbody.innerHTML = tools.map(t => {
+      const pct = (t.resharpening_count / t.max_resharpening) * 100;
+      const cls = pct >= 100 ? 'danger' : pct >= 66 ? 'warn' : '';
+      const canRequest = t.status !== 'sharpening_needed' && t.resharpening_count < t.max_resharpening;
+      return `
+        <tr>
+          <td><div class="tool-name">${t.name}</div><div class="tool-id">${t.id}</div></td>
+          <td>${t.tool_type}</td>
+          <td>${t.material || '—'}</td>
+          <td>${t.manufacturer || '—'}</td>
+          <td style="font-family:var(--font-mono)">${t.usage_count}回</td>
+          <td>
+            <div class="resharp-info">${t.resharpening_count} / ${t.max_resharpening}</div>
+            <div class="resharp-bar"><div class="resharp-fill ${cls}" style="width:${Math.min(100,pct)}%"></div></div>
+          </td>
+          <td>${pillHtml(t.status, statusMap[t.status] || t.status)}</td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="showQrCode('${t.id}', '${t.name}')">QR発行</button>
+            ${canRequest ? `<button class="btn btn-outline btn-sm" onclick="openRequestModal('${t.id}','${t.name}')">再研磨依頼</button>` : ''}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function loadUsage() {
+  try {
+    const tools = await fetch(`${API}/tools`).then(r => r.json());
+    const select = document.getElementById('usage-tool-select');
+    select.innerHTML = '<option value="">-- 工具を選択してください --</option>' + 
+      tools.map(t => `<option value="${t.id}">${t.name} (${t.id})</option>`).join('');
+    
+    document.getElementById('usage-tbody').innerHTML = '<tr><td colspan="3"><div class="empty-state">工具を選択してください</div></td></tr>';
+  } catch(e) { console.error(e); }
+}
+
+async function loadToolUsageHistory() {
+  const toolId = document.getElementById('usage-tool-select').value;
+  const tbody = document.getElementById('usage-tbody');
+  
+  if (!toolId) {
+    tbody.innerHTML = '<tr><td colspan="3"><div class="empty-state">工具を選択してください</div></td></tr>';
+    return;
+  }
+  
+  try {
+    const logs = await fetch(`${API}/tools/${toolId}/usage-history`).then(r => r.json());
+    if (logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="3"><div class="empty-state">使用履歴はありません</div></td></tr>';
+    } else {
+      tbody.innerHTML = logs.map(u => `
+        <tr>
+          <td style="font-family:var(--font-mono);font-size:12px">${formatDateTime(u.used_at)}</td>
+          <td>${u.used_by}</td>
+          <td style="font-size:12px;color:var(--text-dim)">${u.notes || '—'}</td>
+        </tr>
+      `).join('');
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function showQrCode(toolId, toolName) {
+  try {
+    const res = await fetch(`${API}/tools/${toolId}/qr`).then(r => r.json());
+    document.getElementById('qr-tool-name').textContent = toolName;
+    document.getElementById('qr-image-container').innerHTML = `<img src="${res.qr_code}" alt="QR Code" style="width: 200px; height: 200px; border: 1px solid var(--border); border-radius: 8px;">`;
+    openModal('qr-modal');
+  } catch(e) {
+    showToast('QRコードの取得に失敗しました', true);
+  }
+}
+
+async function loadRequests() {
+  try {
+    const reqs = await fetch(`${API}/sharpening-requests`).then(r => r.json());
+    const tbody = document.getElementById('requests-tbody');
+    if (reqs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="icon">↺</div>依頼はありません</div></td></tr>';
+    } else {
+      tbody.innerHTML = reqs.map(r => `
+        <tr onclick="showRequestDetail('${r.id}')" style="cursor:pointer">
+          <td><div class="tool-name">${r.tool_name}</div><div class="tool-id">${r.tool_type}</div></td>
+          <td>${r.material || '—'}</td>
+          <td style="font-family:var(--font-mono);font-size:12px">${r.requested_at?.slice(0,10) || '—'}</td>
+          <td>${pillHtml(r.status, statusMap[r.status] || r.status)}</td>
+          <td style="font-family:var(--font-mono);font-weight:600">${r.estimated_price ? '¥'+r.estimated_price.toLocaleString() : '—'}</td>
+          <td style="font-family:var(--font-mono)">${r.estimated_delivery || '—'}</td>
+          <td style="font-size:12px;color:var(--text-dim);max-width:150px">${r.quote_notes || '—'}</td>
+        </tr>
+      `).join('');
+    }
+  } catch(e) { console.error(e); }
+}
+
+function openRequestModal(toolId, toolName) {
+  document.getElementById('req-tool-id').value = toolId;
+  document.getElementById('req-tool-name').value = toolName;
+  document.getElementById('req-requester').value = '';
+  document.getElementById('req-reason').value = '';
+  document.getElementById('req-priority').value = 'normal';
+  openModal('request-modal');
+}
+
+async function submitRequest() {
+  const toolId = document.getElementById('req-tool-id').value;
+  const requester = document.getElementById('req-requester').value.trim();
+  const reason = document.getElementById('req-reason').value.trim();
+  const priority = document.getElementById('req-priority').value;
+
+  if (!requester || !reason) {
+    showToast('担当者名と依頼理由を入力してください', true);
+    return;
+  }
+
+  try {
+    const r = await fetch(`${API}/sharpening-requests`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ tool_id: toolId, requested_by: requester, reason, priority })
+    });
+    if (!r.ok) {
+      const err = await r.json();
+      throw new Error(err.detail || 'エラー');
+    }
+    closeModal('request-modal');
+    showToast('再研磨依頼を送信しました');
+    loadDashboard();
+    // Reload tool panel if on scanner page
+    if (currentToolId === toolId) {
+      loadToolPanel(toolId);
+    }
+  } catch(e) {
+    showToast(e.message, true);
+  }
+}
+
+async function showRequestDetail(reqId) {
+  try {
+    const r = await fetch(`${API}/sharpening-requests/${reqId}`).then(r => r.json());
+    document.getElementById('detail-title').textContent = '依頼詳細';
+    document.getElementById('detail-content').innerHTML = `
+      <div style="margin-bottom:16px">
+        <div style="font-size:16px;font-weight:700;margin-bottom:4px">${r.tool_name}</div>
+        <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-dim)">${r.tool_id}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div><span style="font-size:11px;color:var(--text-dim)">種類</span><div>${r.tool_type}</div></div>
+        <div><span style="font-size:11px;color:var(--text-dim)">材質</span><div>${r.material || '—'}</div></div>
+        <div><span style="font-size:11px;color:var(--text-dim)">メーカー</span><div>${r.manufacturer || '—'}</div></div>
+        <div><span style="font-size:11px;color:var(--text-dim)">再研磨</span><div>${r.resharpening_count} / ${r.max_resharpening}回</div></div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;margin-bottom:16px">
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px">依頼理由</div>
+        <div style="font-size:13px">${r.reason}</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:8px">依頼者: ${r.requested_by} ／ ${r.requested_at?.slice(0,10) || ''}</div>
+      </div>
+      ${r.status === 'quoted' || r.status === 'completed' ? `
+      <div class="quote-box">
+        <h4>見積回答</h4>
+        <div class="quote-row">
+          <span class="label">見積金額</span>
+          <span class="price">¥${r.estimated_price?.toLocaleString() || '—'}</span>
+        </div>
+        <div class="quote-row">
+          <span class="label">納期</span>
+          <span class="value">${r.estimated_delivery || '—'}</span>
+        </div>
+        ${r.quote_notes ? `<div style="margin-top:10px;font-size:12px;color:var(--text-dim)">${r.quote_notes}</div>` : ''}
+      </div>
+      ` : `
+      <div style="text-align:center;padding:20px;color:var(--text-dim)">
+        <div style="font-size:24px;margin-bottom:8px">⏳</div>
+        <div>見積回答をお待ちください</div>
+      </div>
+      `}
+    `;
+    openModal('detail-modal');
+  } catch(e) {
+    showToast('詳細の取得に失敗しました', true);
+  }
+}
+
+// Init
+loadDashboard();
+</script>
+</body>
+</html>
